@@ -1,5 +1,11 @@
 #![allow(dead_code)]
 
+type ParseResult<'a, Output> = Result<(&'a str, Output), &'a str>;
+
+trait Parser<Output> {
+    fn parse(&self, input: &str) -> ParseResult<Output>;
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Element {
     name: String,
