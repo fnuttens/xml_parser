@@ -22,14 +22,14 @@ struct Element {
     children: Vec<Element>,
 }
 
-fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), &str> {
-    move |input| match input.get(0..expected.len()) {
+fn match_literal<'a>(expected: &'static str) -> impl Parser<'a, ()> {
+    move |input: &'a str| match input.get(0..expected.len()) {
         Some(next) if next == expected => Ok((&input[expected.len()..], ())),
         _ => Err(input),
     }
 }
 
-fn identifier(input: &str) -> Result<(&str, String), &str> {
+fn identifier(input: &str) -> ParseResult<String> {
     let mut matched = String::new();
     let mut chars = input.chars();
 
@@ -98,12 +98,12 @@ mod tests {
     #[test]
     fn literal_parser() {
         let parser_joe = match_literal("Hello Joe!");
-        assert_eq!(Ok(("", ())), parser_joe("Hello Joe!"));
+        assert_eq!(Ok(("", ())), parser_joe.parse("Hello Joe!"));
         assert_eq!(
             Ok((" Hello Robert!", ())),
-            parser_joe("Hello Joe! Hello Robert!")
+            parser_joe.parse("Hello Joe! Hello Robert!")
         );
-        assert_eq!(Err("Hello Mike!"), parser_joe("Hello Mike!"));
+        assert_eq!(Err("Hello Mike!"), parser_joe.parse("Hello Mike!"));
     }
 
     #[test]
@@ -127,6 +127,17 @@ mod tests {
         let tag_opener = pair(match_literal("<"), identifier);
         assert_eq!(
             Ok(("/>", ((), "my-first-element".to_string()))),
+            tag_opener.parse("<my-first-element/>")
+        );
+        assert_eq!(Err("oops"), tag_opener.parse("oops"));
+        assert_eq!(Err("!oops"), tag_opener.parse("<!oops"));
+    }
+
+    #[test]
+    fn right_combinator() {
+        let tag_opener = right(match_literal("<"), identifier);
+        assert_eq!(
+            Ok(("/>", "my-first-element".to_string())),
             tag_opener.parse("<my-first-element/>")
         );
         assert_eq!(Err("oops"), tag_opener.parse("oops"));
