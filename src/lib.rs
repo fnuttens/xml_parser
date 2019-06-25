@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::ops::Range;
+
 type ParseResult<'a, Output> = Result<(&'a str, Output), &'a str>;
 
 trait Parser<'a, Output> {
@@ -127,6 +129,30 @@ where
         }
 
         Ok((input, result))
+    }
+}
+
+fn repeat<'a, P, A>(parser: P, range: &'a Range<usize>) -> impl Parser<'a, Vec<A>>
+where
+    P: Parser<'a, A>,
+{
+    move |mut input| {
+        let mut result = Vec::new();
+
+        for _ in range.clone() {
+            if let Ok((next_input, next_item)) = parser.parse(input) {
+                input = next_input;
+                result.push(next_item);
+            } else {
+                break;
+            }
+        }
+
+        if range.contains(&result.len()) {
+            Ok((input, result))
+        } else {
+            Err(input)
+        }
     }
 }
 
