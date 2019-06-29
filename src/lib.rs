@@ -119,6 +119,8 @@ where
             if let Ok((next_input, next_item)) = parser.parse(input) {
                 input = next_input;
                 result.push(next_item);
+            } else {
+                break;
             }
         }
 
