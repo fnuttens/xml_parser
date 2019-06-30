@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![type_length_limit="16777216"]
 
 use std::ops::RangeBounds;
 
@@ -179,6 +180,14 @@ fn quoted_string<'a>() -> impl Parser<'a, String> {
     )
 }
 
+fn attribute_pair<'a>() -> impl Parser<'a, (String, String)> {
+    pair(identifier, right(match_literal("="), quoted_string()))
+}
+
+fn attributes<'a>() -> impl Parser<'a, Vec<(String, String)>> {
+    zero_or_more(right(space1(), attribute_pair()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,6 +269,20 @@ mod tests {
         assert_eq!(
             Ok(("", "Hello Joe!".to_string())),
             quoted_string().parse("\"Hello Joe!\"")
+        );
+    }
+
+    #[test]
+    fn attribute_parser() {
+        assert_eq!(
+            Ok((
+                "",
+                vec![
+                    ("one".to_string(), "1".to_string()),
+                    ("two".to_string(), "2".to_string())
+                ]
+            )),
+            attributes().parse(" one=\"1\" two=\"2\"")
         );
     }
 }
